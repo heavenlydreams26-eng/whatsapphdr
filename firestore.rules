@@ -1,0 +1,151 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- User Profile Validation ---
+    function isValidUser(data) {
+      return data.uid == request.auth.uid 
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
+        && (data.get('photoURL', '') is string && data.get('photoURL', '').size() <= 2000)
+        && data.agentRole in ['recruiter', 'follow-up', 'customer-service', 'hr', 'collections']
+        && (data.get('agentName', '') is string && data.get('agentName', '').size() <= 100)
+        && (data.get('agentTone', 'professional') in ['professional', 'friendly', 'formal', 'persuasive', 'empathetic'])
+        && (data.get('knowledgeBase', '') is string && data.get('knowledgeBase', '').size() <= 10000);
+    }
+
+    // --- Chat Validation ---
+    function isValidChat(data) {
+      return data.contactName is string && data.contactName.size() > 0 && data.contactName.size() <= 100
+        && data.lastMessage is string && data.lastMessage.size() <= 1000
+        && data.unreadCount is number && data.unreadCount >= 0;
+    }
+
+    // --- Message Validation ---
+    function isValidMessage(data) {
+      return data.text is string && data.text.size() > 0 && data.text.size() <= 5000
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.isAi is bool
+        && data.role in ['user', 'assistant']
+        && (data.role == 'user' ? data.senderId == request.auth.uid : data.senderId == 'ai-agent');
+    }
+
+    // --- CRM Client Validation ---
+    function isValidCRMClient(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && (data.get('email', '') is string && data.get('email', '').size() <= 255)
+        && (data.get('phone', '') is string && data.get('phone', '').size() <= 30)
+        && data.status in ['lead', 'active', 'delinquent', 'closed']
+        && (data.get('notes', '') is string && data.get('notes', '').size() <= 5000);
+    }
+
+    // --- Protocol Validation ---
+    function isValidProtocol(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.personality is string && data.personality.size() <= 2000
+        && data.instructions is string && data.instructions.size() <= 5000
+        && data.dbSource in ['all', 'delinquent', 'new_clients', 'recruitment']
+        && data.isActive is bool;
+    }
+
+    match /users/{userId} {
+      // 3. Path Variable Hardening
+      allow read: if isOwner(userId);
+      
+      allow create: if isOwner(userId) && isVerified() 
+        && isValidUser(incoming())
+        && incoming().keys().hasAll(['uid', 'displayName', 'createdAt', 'agentRole'])
+        && incoming().createdAt == request.time;
+      
+      allow update: if isOwner(userId) && isVerified()
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'agentRole', 'agentName', 'agentTone', 'templates', 'knowledgeBase'])
+        );
+
+      match /protocols/{protocolId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isVerified() && isValidId(protocolId)
+          && isValidProtocol(incoming())
+          && incoming().keys().hasAll(['name', 'personality', 'instructions', 'dbSource', 'isActive'])
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId) && isVerified() && isValidId(protocolId)
+          && isValidProtocol(incoming())
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'personality', 'instructions', 'dbSource', 'welcomeMessage', 'tools', 'isActive', 'updatedAt'])
+          );
+        allow delete: if isOwner(userId) && isVerified();
+      }
+
+      match /chats/{chatId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isVerified() && isValidId(chatId)
+          && isValidChat(incoming())
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId) && isVerified() && isValidId(chatId)
+          && isValidChat(incoming())
+          && (
+            (incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'unreadCount']))
+            || (incoming().diff(existing()).affectedKeys().hasOnly(['contactName', 'lastMessage', 'updatedAt', 'unreadCount']))
+          )
+          && incoming().updatedAt == request.time;
+        
+        match /messages/{messageId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId) && isVerified() && isValidId(messageId)
+            && isValidMessage(incoming())
+            && incoming().timestamp == request.time
+            && exists(/databases/$(database)/documents/users/$(userId)/chats/$(chatId));
+        }
+      }
+
+      match /crm_clients/{clientId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isVerified() && isValidId(clientId)
+          && isValidCRMClient(incoming())
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId) && isVerified() && isValidId(clientId)
+          && isValidCRMClient(incoming())
+          && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isVerified();
+      }
+
+      match /workflows/{workflowId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isVerified() && isValidId(workflowId)
+          && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isVerified() && isValidId(workflowId)
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'steps', 'name', 'description'])
+          );
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isVerified() && isValidId(notificationId)
+          && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isVerified() && isValidId(notificationId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      }
+      
+      match /api_keys/{keyId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isVerified() && isValidId(keyId);
+      }
+    }
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and agent preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "agentRole": { 
+          "type": "string",
+          "enum": ["recruiter", "follow-up", "customer-service", "hr", "collections"]
+        },
+        "agentName": { "type": "string", "description": "Custom name for the AI agent." },
+        "agentTone": { 
+          "type": "string", 
+          "description": "Style of communication.",
+          "enum": ["professional", "friendly", "formal", "persuasive", "empathetic"]
+        },
+        "templates": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "content": { "type": "string" }
+            }
+          },
+          "description": "Custom message templates for the agent to reference."
+        },
+        "knowledgeBase": { "type": "string", "description": "Raw text or specialized info for the AI agent." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Chat": {
+      "title": "Chat Session",
+      "description": "Information about a conversation between a user/contact and the AI agent.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participantIds": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "contactName": { "type": "string" },
+        "unreadCount": { "type": "number" }
+      }
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a chat.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isAi": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["user", "assistant"] }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Custom notifications for events.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      }
+    },
+    "CRMClient": {
+      "title": "CRM Client",
+      "description": "A client stored in the local CRM.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["lead", "active", "delinquent", "closed"] },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "syncedWithCentral": { "type": "boolean" }
+      },
+      "required": ["name", "status"]
+    },
+    "Workflow": {
+      "title": "Workflow",
+      "description": "A defined sequence of steps for a process.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["draft", "active", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "steps"]
+    },
+    "APIKey": {
+      "title": "API Key",
+      "description": "A key for external application integration.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "key": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "revoked"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUsed": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "key"]
+    },
+    "Integration": {
+      "title": "External Integration",
+      "description": "Settings and credentials for external service integrations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "service": { "type": "string", "enum": ["google_calendar", "meta_ads", "slack", "outlook", "stripe", "whatsapp"] },
+        "status": { "type": "string", "enum": ["connected", "disconnected", "error", "pairing"] },
+        "config": { 
+          "type": "object", 
+          "properties": {
+            "phoneNumber": { "type": "string" },
+            "deviceName": { "type": "string" },
+            "sessionExpiry": { "type": "string", "format": "date-time" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["service", "status"]
+    },
+    "AgentProtocol": {
+      "title": "Agent Protocol",
+      "description": "Definition of an AI agent's personality, database access, and specific functions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "personality": { "type": "string", "description": "Long-form description of personality and behavior." },
+        "instructions": { "type": "string", "description": "Specific system instructions for the LLM." },
+        "dbSource": { 
+          "type": "string", 
+          "enum": ["all", "delinquent", "new_clients", "recruitment"], 
+          "description": "Filter for the CRM data the agent can access." 
+        },
+        "welcomeMessage": { "type": "string" },
+        "tools": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "personality"]
+    },
+    "Ticket": {
+      "title": "Support Ticket",
+      "description": "A support request submitted by a user or managed by the agent.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "pending", "resolved", "closed"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subject", "status", "priority"]
+    },
+    "TicketMessage": {
+      "title": "Ticket Message",
+      "description": "A message or update within a support ticket.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isAi": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and settings."
+    },
+    "users/{userId}/protocols/{protocolId}": {
+      "schema": "AgentProtocol",
+      "description": "Protocols defining agent behavior and access."
+    },
+    "users/{userId}/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Individual chats for a user."
+    },
+    "users/{userId}/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a chat."
+    },
+    "users/{userId}/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications."
+    },
+    "users/{userId}/crm_clients/{clientId}": {
+      "schema": "CRMClient",
+      "description": "Clients managed by the user."
+    },
+    "users/{userId}/workflows/{workflowId}": {
+      "schema": "Workflow",
+      "description": "Workflows created by the user."
+    },
+    "users/{userId}/api_keys/{keyId}": {
+      "schema": "APIKey",
+      "description": "API keys for external integrations."
+    },
+    "users/{userId}/integrations/{integrationId}": {
+      "schema": "Integration",
+      "description": "External services connected by the user."
+    },
+    "users/{userId}/tickets/{ticketId}": {
+      "schema": "Ticket",
+      "description": "Support tickets created by the user."
+    },
+    "users/{userId}/tickets/{ticketId}/messages/{messageId}": {
+      "schema": "TicketMessage",
+      "description": "Messages and logs for a ticket."
+    }
+  }
+}

@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Theme variables mapped to CSS custom properties for easy toggling */
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-surface-hover: var(--brand-surface-hover);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-purple: var(--brand-purple);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+
+  /* Deprecated theme compatibility mapped to CSS custom properties */
+  --color-tema-negro: var(--tema-negro);
+  --color-tema-profundo: var(--tema-profundo);
+  --color-tema-neon: var(--tema-neon);
+  --color-tema-electrico: var(--tema-electrico);
+  --color-tema-matriz: var(--tema-matriz);
+  --color-tema-texto: var(--tema-texto);
+  --color-border-color: var(--border-color);
+}
+
+:root {
+  /* DARK THEME - Dashboard UI */
+  --brand-bg: #090e17;
+  --brand-surface: #111726;
+  --brand-surface-hover: #1a2235;
+  --brand-primary: #00b4d8;
+  --brand-accent: #00d588;
+  --brand-purple: #9d4edd;
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+  --border-color: #1a2235;
+
+  /* Deprecated theme compatibility */
+  --tema-negro: #090e17;
+  --tema-profundo: #0d131f; 
+  --tema-neon: #00b4d8;
+  --tema-electrico: #1e3a8a;
+  --tema-matriz: #00d588;
+  --tema-texto: #ffffff;
+}
+
+:root.light {
+  /* LIGHT THEME (Requested: #00aeef background) */
+  --brand-bg: #00aeef;
+  --brand-surface: rgba(255, 255, 255, 0.9);
+  --brand-surface-hover: rgba(255, 255, 255, 1);
+  --brand-primary: #1e40af;
+  --brand-accent: #047857;
+  --brand-purple: #7e22ce;
+  --text-main: #000000;
+  --text-muted: #1e293b;
+  --border-color: rgba(255, 255, 255, 0.4);
+
+  --tema-negro: #00aeef;
+  --tema-profundo: #009bcc; 
+  --tema-neon: #ffffff;
+  --tema-electrico: rgba(255, 255, 255, 0.3);
+  --tema-matriz: #000000;
+  --tema-texto: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-text-main font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Compatibility for panel-de-vidrio */
+  .panel-de-vidrio {
+    @apply bg-brand-surface border border-brand-surface-hover shadow-xl rounded-2xl;
+  }
+
+  /* Hidden Scrollbars */
+  .hide-scrollbar {
+    overflow: -moz-scrollbars-none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Old Scrollbar hiding */
+  .ocultar-barra-desplazamiento {
+    overflow: -moz-scrollbars-none;
+    -ms-overflow-style: none;
+  }
+  .ocultar-barra-desplazamiento::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Grid background for main components */
+.grid-bg {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.text-brillo {
+  text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
+}
+
